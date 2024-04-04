@@ -1,0 +1,13 @@
+[misp]
+
+# MISP Server Name
+name = "My MISP Server"
+
+# MISP server URL
+url = "https://your.misp.server:8443"
+
+# API key to access MISP server
+key = "ChangeMe"
+
+# TLS verification
+ssl = true
