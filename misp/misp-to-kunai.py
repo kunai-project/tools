@@ -129,11 +129,12 @@ if __name__ == "__main__":
 
     cache = set()
     if args.output != "/dev/stdout" and not args.overwrite:
-        info(f"building cache from existing file: {args.output}")
-        with open(args.output, "r") as fd:
-            for line in fd:
-                ioc = json.loads(line)
-                cache.add(ioc["uuid"])
+        if os.path.isfile(args.output):
+            info(f"building cache from existing file: {args.output}")
+            with open(args.output, "r") as fd:
+                for line in fd:
+                    ioc = json.loads(line)
+                    cache.add(ioc["uuid"])
 
     open_mode = "w" if args.overwrite else "a"
     with open(args.output, "a") as fd:
