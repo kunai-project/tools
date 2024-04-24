@@ -111,7 +111,7 @@ class Query(object):
                     self._update(event)
                     return True
 
-                for k, v in self._recursive_walk(eventdata):
+                for k, v in self._recursive_walk(event):
                     # check for Hashes
                     if k in ["md5", "sha1", "sha256", "sha512"]:
                         if v in self.hashes:
