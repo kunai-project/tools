@@ -11,3 +11,19 @@ key = "ChangeMe"
 
 # TLS verification
 ssl = true
+
+# Enable
+enable = true
+
+
+# Support feeds in MISP format
+[[misp-feeds]]
+name = "CIRCL OSINT Feed"
+url = "https://www.circl.lu/doc/misp/feed-osint"
+enable = true
+
+# Add other feeds like this
+# [[misp-feeds]]
+# name = "Some other feed"
+# url = "https://some.misp.feed/misp/feed-osint"
+# enable = true

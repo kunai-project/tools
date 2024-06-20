@@ -3,9 +3,9 @@ charset-normalizer==3.3.2
 Deprecated==1.2.14
 idna==3.6
 publicsuffixlist==0.10.0.20240403
-pymisp==2.4.188
+pymisp==2.4.193
 python-dateutil==2.9.0.post0
-requests==2.31.0
+requests==2.32.3
 six==1.16.0
 toml==0.10.2
 urllib3==2.2.1

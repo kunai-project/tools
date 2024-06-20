@@ -10,6 +10,7 @@ import asyncio
 import urllib3
 import argparse
 import ipaddress
+import requests
 
 from typing import *
 from datetime import date, datetime, timezone, timedelta
@@ -54,15 +55,19 @@ def ioc_from_attribute(attr, source=""):
 def emit_attributes(misp: PyMISP, uuids: List[str]):
     for uuid in uuids:
         event = misp.get_event(uuid, pythonify=True)
-        for attr in event.attributes:
-            attr.event_uuid = uuid
+        for attr in event_emit_attributes(event):
             yield attr
-        for o in event.objects:
-            for attr in o.attributes:
-                # here we modify attribute to add an extra field
-                # being the uuid of the event it is defined in
-                attr.event_uuid = uuid
-                yield attr
+
+def event_emit_attributes(event: MISPEvent):
+    for attr in event.attributes:
+        attr.event_uuid = event.uuid
+        yield attr
+    for o in event.objects:
+        for attr in o.attributes:
+            # here we modify attribute to add an extra field
+            # being the uuid of the event it is defined in
+            attr.event_uuid = event.uuid
+            yield attr
 
 def gen_kunai_iocs(misp: PyMISP, source:str, since: date, all: bool, tags=None):
     published = True if not all else None
@@ -77,6 +82,23 @@ def gen_kunai_iocs(misp: PyMISP, source:str, since: date, all: bool, tags=None):
         for ioc in iocs_from_attributes(source, [attr]):
             yield ioc
 
+def kunai_iocs_from_feed(feed_config: dict, since: date):
+    url = feed_config["url"].rstrip("/")
+    if not url.endswith("manifest.json"):
+        manifest_url = f"{url}/manifest.json"
+
+    manifest = requests.get(manifest_url).json()
+
+    for event_uuid in manifest:
+        event_ts = datetime.fromtimestamp(manifest[event_uuid]["timestamp"]).date()
+        if event_ts < since:
+            continue
+        event = requests.get(f"{url}/{event_uuid}.json").json()
+        me = MISPEvent()
+        me.from_dict(**event)
+        for attr in event_emit_attributes(me):
+            for ioc in iocs_from_attributes(feed_config["name"], [attr]):
+                yield ioc
 
 if __name__ == "__main__":
 
@@ -102,8 +124,6 @@ if __name__ == "__main__":
                         help="Wait time in seconds between to runs in service mode")
     parser.add_argument("--service", action="store_true",
                         help="Run in service mode (i.e endless loop)")
-    parser.add_argument("--source", type=str,
-                        help="Name of the IOC source")
 
     args = parser.parse_args()
 
@@ -121,12 +141,9 @@ if __name__ == "__main__":
     if args.last is not None:
         since = (datetime.now() - timedelta(days=args.last)).date()
     
-    # handling source option
-    if args.source is None:
-        args.source = misp_config["name"]
-    
     tags = args.tags.split(",") if args.tags is not None else None
 
+    # building a cache from existing IOCs
     cache = set()
     if args.output != "/dev/stdout" and not args.overwrite:
         if os.path.isfile(args.output):
@@ -139,10 +156,22 @@ if __name__ == "__main__":
     open_mode = "w" if args.overwrite else "a"
     with open(args.output, "a") as fd:
         while True:
-            for ioc in gen_kunai_iocs(misp, args.source, since, args.all, tags):
-                if ioc["uuid"] not in cache:
-                    print(json.dumps(ioc), file=fd)
-                    cache.add(ioc["uuid"])
+            # processing events from a MISP instance
+            if misp_config["enable"] is True:
+                for ioc in gen_kunai_iocs(misp, misp_config["name"], since, args.all, tags):
+                    if ioc["uuid"] not in cache:
+                        print(json.dumps(ioc), file=fd)
+                        cache.add(ioc["uuid"])
+
+            # processing MISP feeds 
+            for feed_config in config["misp-feeds"]:
+                if feed_config["enable"] is False:
+                    continue
+                for ioc in kunai_iocs_from_feed(feed_config, since):
+                    if ioc["uuid"] not in cache:
+                        print(json.dumps(ioc), file=fd)
+                        cache.add(ioc["uuid"])
+
             info(f"number of iocs: {len(cache)}")
             if args.service:
                 info(f"waiting {args.wait}s before next run")
