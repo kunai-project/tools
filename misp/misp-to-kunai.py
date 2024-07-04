@@ -134,7 +134,9 @@ if __name__ == "__main__":
     config = toml.load(open(args.config))
 
     misp_config = config["misp"]
-    misp = PyMISP(url=misp_config["url"], key=misp_config["key"], ssl=misp_config["ssl"])
+
+    if misp_config["enable"] is True:
+        misp = PyMISP(url=misp_config["url"], key=misp_config["key"], ssl=misp_config["ssl"])
 
     # handling last option
     since = None
