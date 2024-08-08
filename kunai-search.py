@@ -126,7 +126,8 @@ class Query(object):
         return False
 
 def gen_events(fd):
-    for line in fd.readlines():
+    for line in map(lambda l: l.strip(), fd):
+        
         yield json.loads(line)
 
 def sha256_file(file_path):
@@ -170,4 +171,4 @@ if __name__ == "__main__":
     
     for event in eg:
         if query.match(event):
-            print(json.dumps(event))
+            print(json.dumps(event), flush=True)
