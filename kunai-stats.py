@@ -53,24 +53,31 @@ if __name__ == "__main__":
             first = timestamp
         last = timestamp
 
-        if count % args.refresh == 0:
+        if count != 0 and count % args.refresh == 0:
             os.system("clear")
             delta = last - first
+
+            if delta.total_seconds() == 0:
+                continue
+
             for k in sorted(stats, key=lambda k: k[0]):
                 c = stats[k]
-                eps = c / (last - first).seconds
+                eps = c / delta.total_seconds()
                 print(f"{k[1]}:".ljust(20), end=' ')
                 print(f"{c} ->".rjust(10), end=' ')
                 print(f"{eps:.2f} e/s".rjust(12))
-            tot_eps = count / (last - first).seconds
-            tot_bps = size / (last-first).seconds
+            tot_eps = count / delta.total_seconds()
+            tot_bps = size / delta.total_seconds()
             print()
-            print(f"Totals")
-            print(f"Events:".ljust(20), end=' ')
+            print("Totals")
+            print("Events:".ljust(20), end=' ')
             print(f"{count} ->".rjust(10), end=' ')
             print(f"{tot_eps:.2f} e/s".rjust(12))
             # size in bytes
-            print(f"Bytes:".ljust(20), end=' ')
+            print("Bytes:".ljust(20), end=' ')
             print(f"{format_bytes(size)} ->".rjust(10), end=' ')
             print(f"{format_bytes(tot_bps)}/s".rjust(12))
+            # time
+            print("Sample Duration:".ljust(20), end=' ')
+            print(f"{delta}".rjust(10))
 
