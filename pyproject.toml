@@ -8,15 +8,12 @@ requires-python = ">=3.13"
 dependencies = ["pymisp", "toml", "graphviz"]
 
 [project.scripts]
-misp-to-kunai = "misp_to_kunai:main"
-kunai-to-misp = "kunai_to_misp:main"
-kunai-graph = "graph:main"
-kunai-search = "search:main"
-kunai-iocgen = "tools.iocgen:main"
+misp-to-kunai = "pykunai.tools.misp_to_kunai:main"
+kunai-to-misp = "pykunai.tools.kunai_to_misp:main"
+kunai-graph = "pykunai.tools.kunai_graph:main"
+kunai-search = "pykunai.tools.search:main"
+kunai-iocgen = "pykunai.tools.iocgen:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.uv.workspace]
-members = ["src/tools"]
