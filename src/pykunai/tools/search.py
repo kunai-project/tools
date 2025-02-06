@@ -70,3 +70,7 @@ def main():
     for event in eg:
         if query.match(event):
             print(event.json(), flush=True)
+
+
+if __name__ == "__main__":
+    main()

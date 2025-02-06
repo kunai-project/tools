@@ -15,8 +15,8 @@ from pymisp import PyMISP, MISPEvent, MISPObject
 from pymisp.tools import FileObject
 from pykunai.event import Event, Query
 from pykunai.utils import decode_events, sha256_file
+from pykunai.graph import KunaiGraph
 from typing import List
-from graph import KunaiGraph
 
 
 def misp_object_to_tuple(mo: MISPObject):
@@ -431,3 +431,7 @@ def main() -> None:
         kunai_analysis_event.with_sample(args.file)
 
     misp.add_event(kunai_analysis_event.into_misp_event())
+
+
+if __name__ == "__main__":
+    main()
