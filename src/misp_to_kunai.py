@@ -1,12 +1,10 @@
-#!/usr/bin/env python
-
 import os
 import sys
 import time
 import json
 import argparse
 
-from typing import *
+from typing import List
 from datetime import date, datetime, timedelta
 
 import requests
@@ -23,13 +21,16 @@ TYPES_SEVERITY = {
     "ip-dst": 5,
 }
 
-REQUEST_TIMEOUT=10
+REQUEST_TIMEOUT = 10
 
-def log(msg: str, level:str):
+
+def log(msg: str, level: str):
     print(f"{level}:{msg}", file=sys.stderr)
+
 
 def info(msg: str):
     log(msg, "INFO")
+
 
 def uuids_from_search(search):
     uuids = []
@@ -40,23 +41,30 @@ def uuids_from_search(search):
             uuids.append(res.uuid)
     return uuids
 
+
 def iocs_from_attributes(source: str, attributes: List[MISPAttribute]) -> List[dict]:
     iocs = []
     for a in attributes:
         if a.type in TYPES_SEVERITY:
-            iocs.append({"type": a.type,
-            "uuid": a.uuid, 
-            "source": source, 
-            "value": a.value, 
-            "event_uuid": a.event_uuid, 
-            "severity": TYPES_SEVERITY[a.type]})
+            iocs.append(
+                {
+                    "type": a.type,
+                    "uuid": a.uuid,
+                    "source": source,
+                    "value": a.value,
+                    "event_uuid": a.event_uuid,
+                    "severity": TYPES_SEVERITY[a.type],
+                }
+            )
     return iocs
+
 
 def emit_attributes(py_misp: PyMISP, uuids: List[str]):
     for uuid in uuids:
         event = py_misp.get_event(uuid, pythonify=True)
         for attr in event_emit_attributes(event):
             yield attr
+
 
 def event_emit_attributes(event: MISPEvent):
     for attr in event.attributes:
@@ -69,8 +77,9 @@ def event_emit_attributes(event: MISPEvent):
             attr.event_uuid = event.uuid
             yield attr
 
-def gen_kunai_iocs(py_misp: PyMISP, source:str, since: date, all: bool, tags=None):
-    published = True if not all else None
+
+def gen_kunai_iocs(py_misp: PyMISP, source: str, since: date, get_all: bool, tags=None):
+    published = True if not get_all else None
 
     # search events to pull attributes from
     if since is None:
@@ -81,6 +90,7 @@ def gen_kunai_iocs(py_misp: PyMISP, source:str, since: date, all: bool, tags=Non
     for attr in emit_attributes(py_misp, uuids_from_search(index)):
         for ioc in iocs_from_attributes(source, [attr]):
             yield ioc
+
 
 def kunai_iocs_from_feed(feed_config: dict, since: date):
     url = feed_config["url"].rstrip("/")
@@ -100,30 +110,53 @@ def kunai_iocs_from_feed(feed_config: dict, since: date):
             for ioc in iocs_from_attributes(feed_config["name"], [attr]):
                 yield ioc
 
-if __name__ == "__main__":
 
-    default_config = os.path.realpath(os.path.join(
-        os.path.dirname(__file__), "config.toml"))
+def main():
+    default_config = os.path.realpath(
+        os.path.join(os.path.dirname(__file__), "config.toml")
+    )
 
     parser = argparse.ArgumentParser(
-        description="Tool pulling IoCs from a MISP instance and converting them to be loadable in Kunai")
-    parser.add_argument("-c", "--config", default=default_config,
-                        type=str, help=f"Configuration file. Default: {default_config}")
-    parser.add_argument("-s", "--silent", action="store_true",
-                        help="Silent HTTPS warnings")
-    parser.add_argument("-l", "--last", type=int, default=1,
-                        help="Process events updated the last days")
-    parser.add_argument("-o", "--output", type=str, default="/dev/stdout", help="Output file")
-    parser.add_argument("--overwrite", action="store_true",
-                        help="Overwrite output file (default is to append)")
-    parser.add_argument("--all", action="store_true",
-                        help="Process all events, published and unpublished. By default only published events are processed.")
-    parser.add_argument("--tags", type=str,
-                        help="Comma separated list of (event tags) to pull iocs for")
-    parser.add_argument("--wait", type=int, default=60,
-                        help="Wait time in seconds between to runs in service mode")
-    parser.add_argument("--service", action="store_true",
-                        help="Run in service mode (i.e endless loop)")
+        description="Tool pulling IoCs from a MISP instance and converting them to be loadable in Kunai"
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        default=default_config,
+        type=str,
+        help=f"Configuration file. Default: {default_config}",
+    )
+    parser.add_argument(
+        "-s", "--silent", action="store_true", help="Silent HTTPS warnings"
+    )
+    parser.add_argument(
+        "-l", "--last", type=int, default=1, help="Process events updated the last days"
+    )
+    parser.add_argument(
+        "-o", "--output", type=str, default="/dev/stdout", help="Output file"
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite output file (default is to append)",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Process all events, published and unpublished. By default only published events are processed.",
+    )
+    parser.add_argument(
+        "--tags", type=str, help="Comma separated list of (event tags) to pull iocs for"
+    )
+    parser.add_argument(
+        "--wait",
+        type=int,
+        default=60,
+        help="Wait time in seconds between to runs in service mode",
+    )
+    parser.add_argument(
+        "--service", action="store_true", help="Run in service mode (i.e endless loop)"
+    )
 
     args = parser.parse_args()
 
@@ -131,18 +164,24 @@ if __name__ == "__main__":
     if args.silent:
         urllib3.disable_warnings()
 
+    # checking for configuration file
+    if not os.path.isfile(args.config):
+        parser.error(f"no such file or directory: {args.config}")
+
     config = toml.load(open(args.config, encoding="utf-8"))
 
     misp_config = config["misp"]
 
     if misp_config["enable"] is True:
-        misp = PyMISP(url=misp_config["url"], key=misp_config["key"], ssl=misp_config["ssl"])
+        misp = PyMISP(
+            url=misp_config["url"], key=misp_config["key"], ssl=misp_config["ssl"]
+        )
 
     # handling last option
     since = None
     if args.last is not None:
         since = (datetime.now() - timedelta(days=args.last)).date()
-    
+
     tags = args.tags.split(",") if args.tags is not None else None
 
     # building a cache from existing IOCs
@@ -160,12 +199,14 @@ if __name__ == "__main__":
         while True:
             # processing events from a MISP instance
             if misp_config["enable"] is True:
-                for ioc in gen_kunai_iocs(misp, misp_config["name"], since, args.all, tags):
+                for ioc in gen_kunai_iocs(
+                    misp, misp_config["name"], since, args.all, tags
+                ):
                     if ioc["uuid"] not in cache:
                         print(json.dumps(ioc), file=fd)
                         cache.add(ioc["uuid"])
 
-            # processing MISP feeds 
+            # processing MISP feeds
             for feed_config in config["misp-feeds"]:
                 if feed_config["enable"] is False:
                     continue

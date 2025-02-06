@@ -1,0 +1,19 @@
+[project]
+name = "pykunai"
+version = "0.1.0"
+description = "Python library and tools to work with Kunai"
+readme = "README.md"
+authors = [{ name = "qjerome", email = "quentin.jerome@circl.lu" }]
+requires-python = ">=3.13"
+dependencies = ["pymisp", "toml", "graphviz"]
+
+[project.scripts]
+misp-to-kunai = "misp_to_kunai:main"
+kunai-to-misp = "kunai_to_misp:main"
+kunai-iocgen = "iocgen:main"
+kunai-graph = "graph:main"
+kunai-search = "search:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
