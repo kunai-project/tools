@@ -10,10 +10,13 @@ dependencies = ["pymisp", "toml", "graphviz"]
 [project.scripts]
 misp-to-kunai = "misp_to_kunai:main"
 kunai-to-misp = "kunai_to_misp:main"
-kunai-iocgen = "iocgen:main"
 kunai-graph = "graph:main"
 kunai-search = "search:main"
+kunai-iocgen = "tools.iocgen:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv.workspace]
+members = ["src/tools"]
