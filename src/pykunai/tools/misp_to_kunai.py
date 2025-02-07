@@ -19,6 +19,7 @@ TYPES_SEVERITY = {
     "domain": 7,
     "hostname": 7,
     "ip-dst": 5,
+    "path": 7,
 }
 
 REQUEST_TIMEOUT = 10
@@ -45,6 +46,18 @@ def uuids_from_search(search):
 def iocs_from_attributes(source: str, attributes: List[MISPAttribute]) -> List[dict]:
     iocs = []
     for a in attributes:
+        if a.object_relation in TYPES_SEVERITY:
+            iocs.append(
+                {
+                    "type": a.object_relation,
+                    "uuid": a.uuid,
+                    "source": source,
+                    "value": a.value,
+                    "event_uuid": a.event_uuid,
+                    "severity": TYPES_SEVERITY[a.object_relation],
+                }
+            )
+
         if a.type in TYPES_SEVERITY:
             iocs.append(
                 {
@@ -78,8 +91,10 @@ def event_emit_attributes(event: MISPEvent):
             yield attr
 
 
-def gen_kunai_iocs(py_misp: PyMISP, source: str, since: date, get_all: bool, tags=None):
-    published = True if not get_all else None
+def gen_kunai_iocs(
+    py_misp: PyMISP, source: str, since: date, unpublished: bool, tags=None, to_ids=True
+):
+    published = True if not unpublished else None
 
     # search events to pull attributes from
     if since is None:
@@ -88,6 +103,8 @@ def gen_kunai_iocs(py_misp: PyMISP, source: str, since: date, get_all: bool, tag
         index = py_misp.search_index(published=published, timestamp=since, tags=tags)
 
     for attr in emit_attributes(py_misp, uuids_from_search(index)):
+        if to_ids and not attr.to_ids:
+            continue
         for ioc in iocs_from_attributes(source, [attr]):
             yield ioc
 
@@ -149,6 +166,11 @@ def main():
         "--tags", type=str, help="Comma separated list of (event tags) to pull iocs for"
     )
     parser.add_argument(
+        "--no-to-ids",
+        action="store_false",
+        help="Also retrieve attributes with no MISP IDS flag. The default behaviour is to take only attributes with IDS flag",
+    )
+    parser.add_argument(
         "--wait",
         type=int,
         default=60,
@@ -200,7 +222,7 @@ def main():
             # processing events from a MISP instance
             if misp_config["enable"] is True:
                 for ioc in gen_kunai_iocs(
-                    misp, misp_config["name"], since, args.all, tags
+                    misp, misp_config["name"], since, args.all, tags, args.no_to_ids
                 ):
                     if ioc["uuid"] not in cache:
                         print(json.dumps(ioc), file=fd)
