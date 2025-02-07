@@ -21,7 +21,7 @@ and formats it to be ingested by kunai.
 
 **Configuration**: [see configuration file](./src/pykunai/tools/config/config.example.toml)
 
-```bash
+```
 usage: misp-to-kunai [-h] [-c CONFIG] [-s] [-l LAST] [-o OUTPUT] [--overwrite] [--all] [--tags TAGS] [--wait WAIT]
                      [--service]
 
@@ -55,7 +55,7 @@ One use case example is:
 3. **OPTIONAL**: review attributes' IDS flag to **maximize detections** and **lower false positives**
 4. use `misp-to-kunai` to benefit from the result of the analysis in all of the kunai endpoints
 
-```bash
+```
 usage: kunai-to-misp [-h] [-c CONFIG] [--no-recurse] [-s] [-H HASHES] [-F FILE] [-G GUUID] KUNAI_JSON_INPUT
 
 Push Kunai analysis to MISP
