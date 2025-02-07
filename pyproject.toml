@@ -4,7 +4,7 @@ version = "0.1.1"
 description = "Python library and tools to work with Kunai"
 readme = "README.md"
 authors = [{ name = "qjerome", email = "quentin.jerome@circl.lu" }]
-requires-python = ">=3.13"
+requires-python = ">=3.7"
 dependencies = ["pymisp", "toml", "graphviz"]
 
 [project.scripts]
